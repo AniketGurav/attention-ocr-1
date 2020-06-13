@@ -14,7 +14,6 @@ from utils.img_util import display_images
 
 img_width = 160
 img_height = 60
-max_len = 7
 
 nh = 512
 
@@ -42,10 +41,12 @@ d = Image.open(d)
 
 model.eval()
 with torch.no_grad():
-    image = img_trans(d)
-    pred = model(image.unsqueeze(0))
+    t = img_trans(d)    
+    print(f'tensor shape: {t.shape}')
+    print(f'unsqueezed tensor shape: {t.unsqueeze(0).shape}')
+    pred = model(t.unsqueeze(0))
     
 rst = tokenizer.translate(pred.squeeze(0).argmax(1))
 print(rst)
 
-display_images(image.numpy(), 1, 3)
+display_images(t.numpy(), 1, 3)
