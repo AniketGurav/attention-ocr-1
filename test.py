@@ -27,11 +27,12 @@ tokenizer = Tokenizer(chars)
 model = OCR(img_width, img_height, nh, tokenizer.n_token,
                 n_chars + 1, tokenizer.SOS_token, tokenizer.EOS_token).to(device=device)
 
-model.load_state_dict(torch.load('./chkpoint/time_2020-06-12_23-54-56_epoch_12.pth'))
+model.load_state_dict(torch.load('./chkpoint/time_2020-06-13_17-16-35_epoch_8.pth'))
 
 img_trans = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=(0.229, 0.224, 0.225)),
+    transforms.Grayscale(num_output_channels=3)
+    ,transforms.ToTensor()
+    ,transforms.Normalize(mean=[0.5, 0.5, 0.5], std=(0.5, 0.5, 0.5))
 ])
 
 content = [random.randrange(0, len(chars)) for _ in range(n_chars)]
