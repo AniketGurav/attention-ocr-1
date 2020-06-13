@@ -18,9 +18,6 @@ from model.attention_ocr import OCR
 from utils.dataset import CaptchaDataset
 from utils.train_util import train_batch, eval_batch
 
-DEVICE = 'cpu'
-
-
 def str2bool(v):
     if isinstance(v, bool):
        return v
@@ -32,7 +29,7 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-def main(n_epoch=100, max_len=4, batch_size=32, n_works=4, save_checkpoint_every=5):
+def main(n_epoch=100, max_len=4, batch_size=32, n_works=4, save_checkpoint_every=5, device='cuda'):
     img_width = 160
     img_height = 60
     nh = 512
@@ -75,8 +72,8 @@ def main(n_epoch=100, max_len=4, batch_size=32, n_works=4, save_checkpoint_every
 
         for bi, batch in enumerate(tqdm(train_loader)):
             x, y = batch
-            x = x.to(device=DEVICE)
-            y = y.to(device=DEVICE)
+            x = x.to(device=device)
+            y = y.to(device=device)
 
             loss, acc, sentence_acc = train_batch(x, y, model, optimizer,
                                                   crit, teacher_forcing_ratio, max_len,
@@ -98,8 +95,8 @@ def main(n_epoch=100, max_len=4, batch_size=32, n_works=4, save_checkpoint_every
 
         for bi, batch in enumerate(tqdm(test_loader)):
             x, y = batch
-            x = x.to(device=DEVICE)
-            y = y.to(device=DEVICE)
+            x = x.to(device=device)
+            y = y.to(device=device)
 
             loss, acc, sentence_acc = eval_batch(x, y, model, crit, max_len, tokenizer)
 
@@ -136,7 +133,9 @@ if __name__ == '__main__':
     NUM_EPOCHS = args.e if args.e is not None else 100
     MAX_LEN = args.l if args.l is not None else 7
     CHECKPOINT = args.c if args.c is not None else 5
+    DEVICE = 'cuda' if args.cuda else 'cpu'
 
     print(f'Number of epochs: {NUM_EPOCHS}')
 
-    main(n_epoch=NUM_EPOCHS, max_len=MAX_LEN, n_works=8, save_checkpoint_every=CHECKPOINT)
+    main(n_epoch=NUM_EPOCHS, max_len=MAX_LEN, n_works=8, 
+        save_checkpoint_every=CHECKPOINT, device=DEVICE)
