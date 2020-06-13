@@ -4,3 +4,4 @@ ignite
 Pillow
 captcha
 pycrypto
+tqdm

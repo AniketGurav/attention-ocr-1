@@ -1,3 +1,4 @@
+import argparse
 import random
 import time
 import pickle
@@ -17,25 +18,27 @@ from model.attention_ocr import OCR
 from utils.dataset import CaptchaDataset
 from utils.train_util import train_batch, eval_batch
 
-device = 'cuda'
+DEVICE = 'cpu'
 
 
-def main():
+def str2bool(v):
+    if isinstance(v, bool):
+       return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
+def main(n_epoch=100, max_len=4, batch_size=32, n_works=4, save_checkpoint_every=5):
     img_width = 160
     img_height = 60
-    max_len = 4
-
     nh = 512
 
-    teacher_forcing_ratio = 0.5
-
-    batch_size = 32
-
-    lr = 3e-4
-    n_epoch = 100
-
-    n_works = 8
-    save_checkpoint_every = 5
+    teacher_forcing_ratio = 0.5    
+    lr = 3e-4    
 
     ds_train = CaptchaDataset(img_width, img_height, 10000, max_len)
     ds_test = CaptchaDataset(img_width, img_height, 1000, max_len)
@@ -46,7 +49,7 @@ def main():
     test_loader = DataLoader(ds_test, batch_size=batch_size, shuffle=False, num_workers=n_works)
 
     model = OCR(img_width, img_height, nh, tokenizer.n_token,
-                max_len + 1, tokenizer.SOS_token, tokenizer.EOS_token).to(device=device)
+                max_len + 1, tokenizer.SOS_token, tokenizer.EOS_token).to(device=DEVICE)
 
     load_weights = torch.load('./inception_v3_google-1a9a5a14.pth')
 
@@ -72,8 +75,8 @@ def main():
 
         for bi, batch in enumerate(tqdm(train_loader)):
             x, y = batch
-            x = x.to(device=device)
-            y = y.to(device=device)
+            x = x.to(device=DEVICE)
+            y = y.to(device=DEVICE)
 
             loss, acc, sentence_acc = train_batch(x, y, model, optimizer,
                                                   crit, teacher_forcing_ratio, max_len,
@@ -95,8 +98,8 @@ def main():
 
         for bi, batch in enumerate(tqdm(test_loader)):
             x, y = batch
-            x = x.to(device=device)
-            y = y.to(device=device)
+            x = x.to(device=DEVICE)
+            y = y.to(device=DEVICE)
 
             loss, acc, sentence_acc = eval_batch(x, y, model, crit, max_len, tokenizer)
 
@@ -122,4 +125,18 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description='Usage: python train_.py --m=time_2020-06-12_19-31-05_epoch_10.pth --e=1 --cuda --v')
+    parser.add_argument('--m', help='Path to a previous model to start with')
+    parser.add_argument('--e', type=int, nargs='?', const=100, default=100, help='Number of epochs to train the model')
+    parser.add_argument('--cuda', type=str2bool, nargs='?', const=False, default=False, help='use CUDA if available')
+    parser.add_argument('--l', type=int, nargs='?', const=7, default=7, help='Max number of characters in captcha')
+    parser.add_argument('--c', type=int, nargs='?', const=5, default=5, help='Save model every given number of epochs (checkpoint)')
+    args = parser.parse_args()
+            
+    NUM_EPOCHS = args.e if args.e is not None else 100
+    MAX_LEN = args.l if args.l is not None else 7
+    CHECKPOINT = args.c if args.c is not None else 5
+
+    print(f'Number of epochs: {NUM_EPOCHS}')
+
+    main(n_epoch=NUM_EPOCHS, max_len=MAX_LEN, n_works=8, save_checkpoint_every=CHECKPOINT)
