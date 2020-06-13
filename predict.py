@@ -39,7 +39,8 @@ if __name__ == '__main__':
     model.load_state_dict(torch.load('./chkpoint/time_2020-06-13_17-16-35_epoch_8.pth'))
 
     img_trans = transforms.Compose([
-        transforms.Grayscale(num_output_channels=3)
+        transforms.ToPILImage()
+        ,transforms.Grayscale(num_output_channels=3)
         ,transforms.ToTensor()
         ,transforms.Normalize(mean=[0.5, 0.5, 0.5], std=(0.5, 0.5, 0.5))
     ])
