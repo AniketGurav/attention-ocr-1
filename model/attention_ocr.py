@@ -181,7 +181,64 @@ class Decoder(nn.Module):
 
         return inputs, batch_size, max_length
 
+"""
+class Decoder(nn.Module):
+    def __init__(self, vocab_size, max_len, hidden_size, sos_id, eos_id, n_layers=1):
+        super(Decoder, self).__init__()
 
+        self.vocab_size = vocab_size
+        self.max_len = max_len
+        self.hidden_size = hidden_size
+        self.sos_id = sos_id
+        self.eos_id = eos_id
+        self.n_layers = n_layers
+
+        self.emb = nn.Embedding(vocab_size, hidden_size)  # input: (batch_size, seq_len), output: (batch_size, seq_len, hidden_size)
+        self.attention = Attention(hidden_size)  # hidden: (batch_size, hidden_size), encoder_outputs: (batch_size, seq_len, hidden_size), output: (batch_size, 1, hidden_size)
+        self.rnn = nn.GRU(hidden_size * 2, hidden_size, n_layers)  # input: (batch_size, seq_len, hidden_size * 2), output: (batch_size, seq_len, hidden_size)
+
+        self.out = nn.Linear(hidden_size, vocab_size)  # input: (batch_size, hidden_size), output: (batch_size, vocab_size)
+
+    def forward_step(self, input_, last_hidden, encoder_outputs):
+        emb = self.emb(input_.transpose(0, 1))  # input_: (batch_size), emb: (batch_size, hidden_size)
+        attn = self.attention(last_hidden, encoder_outputs)  # last_hidden: (1, batch_size, hidden_size), encoder_outputs: (batch_size, seq_len, hidden_size), attn: (batch_size, 1, hidden_size)
+        context = attn.bmm(encoder_outputs).transpose(0, 1)  # attn: (batch_size, 1, hidden_size), context: (1, batch_size, hidden_size)
+        rnn_input = torch.cat((emb, context), dim=2)  # emb: (batch_size, hidden_size), context: (1, batch_size, hidden_size), rnn_input: (batch_size, 1, hidden_size * 2)
+
+        outputs, hidden = self.rnn(rnn_input, last_hidden)  # rnn_input: (batch_size, 1, hidden_size * 2), last_hidden: (1, batch_size, hidden_size), outputs: (batch_size, 1, hidden_size), hidden: (1, batch_size, hidden_size)
+
+        if outputs.requires_grad:
+            outputs.register_hook(lambda x: x.clamp(min=-10, max=10))
+
+        outputs = self.out(outputs.contiguous().squeeze(0)).log_softmax(1)  # input: (batch_size, hidden_size), output: (batch_size, vocab_size)
+
+        return outputs, hidden
+
+    def forward(self, inputs=None, encoder_hidden=None, encoder_outputs=None,
+                teacher_forcing_ratio=0):
+        inputs, batch_size, max_length = self._validate_args(
+            inputs, encoder_hidden, encoder_outputs, teacher_forcing_ratio)
+
+        use_teacher_forcing = True if torch.rand(1).item() < teacher_forcing_ratio else False
+
+        outputs = []
+
+        self.rnn.flatten_parameters()
+
+        decoder_hidden = torch.zeros(1, batch_size, self.hidden_size, device=encoder_outputs.device)  # output: (1, batch_size, hidden_size)
+
+        def decode(step_output):
+            symbols = step_output.topk(1)[1]
+            return symbols
+
+        if use_teacher_forcing:
+            for di in range(max_length):
+                decoder_input = inputs[:, di].unsqueeze(1)  # inputs:
+
+"""
+    
+    
+    
 class OCR(nn.Module):
     def __init__(self, img_width, img_height, nh, n_classes, max_len, SOS_token, EOS_token):
         super(OCR, self).__init__()
