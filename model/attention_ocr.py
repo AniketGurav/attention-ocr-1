@@ -193,24 +193,39 @@ class Decoder(nn.Module):
         self.eos_id = eos_id
         self.n_layers = n_layers
 
-        self.emb = nn.Embedding(vocab_size, hidden_size)  # input: (batch_size, seq_len), output: (batch_size, seq_len, hidden_size)
-        self.attention = Attention(hidden_size)  # hidden: (batch_size, hidden_size), encoder_outputs: (batch_size, seq_len, hidden_size), output: (batch_size, 1, hidden_size)
-        self.rnn = nn.GRU(hidden_size * 2, hidden_size, n_layers)  # input: (batch_size, seq_len, hidden_size * 2), output: (batch_size, seq_len, hidden_size)
+        self.emb = nn.Embedding(vocab_size, hidden_size)  
+        # input: (batch_size, seq_len), output: (batch_size, seq_len, hidden_size)
+        
+        self.attention = Attention(hidden_size)  
+        # hidden: (batch_size, hidden_size), encoder_outputs: (batch_size, seq_len, hidden_size), output: (batch_size, 1, hidden_size)
+        
+        self.rnn = nn.GRU(hidden_size * 2, hidden_size, n_layers)  
+        # input: (batch_size, seq_len, hidden_size * 2), output: (batch_size, seq_len, hidden_size)
 
         self.out = nn.Linear(hidden_size, vocab_size)  # input: (batch_size, hidden_size), output: (batch_size, vocab_size)
 
     def forward_step(self, input_, last_hidden, encoder_outputs):
-        emb = self.emb(input_.transpose(0, 1))  # input_: (batch_size), emb: (batch_size, hidden_size)
-        attn = self.attention(last_hidden, encoder_outputs)  # last_hidden: (1, batch_size, hidden_size), encoder_outputs: (batch_size, seq_len, hidden_size), attn: (batch_size, 1, hidden_size)
-        context = attn.bmm(encoder_outputs).transpose(0, 1)  # attn: (batch_size, 1, hidden_size), context: (1, batch_size, hidden_size)
-        rnn_input = torch.cat((emb, context), dim=2)  # emb: (batch_size, hidden_size), context: (1, batch_size, hidden_size), rnn_input: (batch_size, 1, hidden_size * 2)
+        emb = self.emb(input_.transpose(0, 1))  
+        # input_: (batch_size), emb: (batch_size, hidden_size)
+        
+        attn = self.attention(last_hidden, encoder_outputs)  
+        # last_hidden: (1, batch_size, hidden_size), encoder_outputs: (batch_size, seq_len, hidden_size), attn: (batch_size, 1, hidden_size)
+        
+        context = attn.bmm(encoder_outputs).transpose(0, 1)  
+        # attn: (batch_size, 1, hidden_size), context: (1, batch_size, hidden_size)
+        
+        rnn_input = torch.cat((emb, context), dim=2)  
+        # emb: (batch_size, hidden_size), context: (1, batch_size, hidden_size), rnn_input: (batch_size, 1, hidden_size * 2)
 
-        outputs, hidden = self.rnn(rnn_input, last_hidden)  # rnn_input: (batch_size, 1, hidden_size * 2), last_hidden: (1, batch_size, hidden_size), outputs: (batch_size, 1, hidden_size), hidden: (1, batch_size, hidden_size)
+        outputs, hidden = self.rnn(rnn_input, last_hidden)  
+        # rnn_input: (batch_size, 1, hidden_size * 2), last_hidden: (1, batch_size, hidden_size), 
+        #outputs: (batch_size, 1, hidden_size), hidden: (1, batch_size, hidden_size)
 
         if outputs.requires_grad:
             outputs.register_hook(lambda x: x.clamp(min=-10, max=10))
 
-        outputs = self.out(outputs.contiguous().squeeze(0)).log_softmax(1)  # input: (batch_size, hidden_size), output: (batch_size, vocab_size)
+        outputs = self.out(outputs.contiguous().squeeze(0)).log_softmax(1)  
+        # input: (batch_size, hidden_size), output: (batch_size, vocab_size)
 
         return outputs, hidden
 
